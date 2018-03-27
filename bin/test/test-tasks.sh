@@ -7,9 +7,11 @@ function run_test_suite {
     local -r gpg_keyname=$(import_gpg "${JONGO_TEST_DIR}/resources/jongo-dummy-key.gpg")
     append_maven_options "-Dgpg.keyname=${gpg_keyname}"
     append_maven_options "-DskipTests"
+    append_maven_options "--quiet"
 
     before_all
         should_validate_tools
+        can_create_snapshot
         can_create_an_early_release
         can_create_a_new_release
         can_create_an_hotfix_release
@@ -68,10 +70,21 @@ function should_validate_tools {
     after_each
 }
 
+function can_create_snapshot {
+    before_each
+        local current_version=$(get_current_version "${JONGO_TEST_TARGET_BRANCH}")
+        local deploy_dir="${JONGO_TEST_DIR}/../../target/deploy/org/jongo/jongo/${current_version}"
+
+        create_snapshot "${JONGO_TEST_TARGET_BRANCH}"
+
+        assert_directory_exists "${deploy_dir}"
+    after_each
+}
+
 function can_create_an_early_release {
     before_each
-
         local expected_early_tag="42.0.0-early-$(date +%Y%m%d-%H%M)"
+        local deploy_dir="${JONGO_TEST_DIR}/../../target/deploy/org/jongo/jongo/${expected_early_tag}"
 
         create_early_release "${JONGO_TEST_TARGET_BRANCH}"
 
@@ -80,6 +93,8 @@ function can_create_an_early_release {
         assert_eq "$(get_current_version ${early_commit})" "${expected_early_tag}" "early version in pom.xml has not been set"
         assert_not_eq "$(git ls-remote origin refs/tags/${expected_early_tag})" "" "Tag does not exist or has not been pushed"
         assert_eq "$(git show-ref -s "${expected_early_tag}")" "${early_commit}" "Tag does not point to the right commit"
+        assert_file_exists "${deploy_dir}/jongo-${expected_early_tag}.jar"
+        assert_file_exists "${deploy_dir}/jongo-${expected_early_tag}.jar.asc"
     after_each
 }
 
@@ -152,7 +167,12 @@ function can_deploy_artifacts {
 
 function assert_file_exists {
     assert_eq "$([ -f "${1}" ] && echo 'pass' || echo 'fail')" \
-            "pass" "File is missing"
+            "pass" "File ${1} is missing"
+}
+
+function assert_directory_exists {
+    assert_eq "$([ -d "${1}" ] && echo 'pass' || echo 'fail')" \
+            "pass" "Directory ${1} is missing"
 }
 
 function assert_signature_is_valid {

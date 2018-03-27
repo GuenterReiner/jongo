@@ -4,46 +4,50 @@ source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/release-tools.sh"
 function create_early_release {
     local base_branch="${1}"
     local current_version=$(get_current_version "origin/${base_branch}")
-    local tag_early_version=$(determine_early_release_version "origin/${base_branch}")
+    local early_tag=$(determine_early_release_version "origin/${base_branch}")
 
-    log_task "Creating early release ${tag_early_version} on branch '${base_branch}'"
+    log_task "Creating early release ${early_tag} from branch '${base_branch}'"
 
-    test_jongo "${base_branch}"
 
     checkout "${base_branch}"
-        set_version "${base_branch}" "${tag_early_version}"
-        log_info "Branch ${base_branch} updated to project version ${tag_early_version}"
+        _mvn verify
+
+        set_version "${base_branch}" "${early_tag}"
+        log_info "Branch ${base_branch} updated to project version ${early_tag}"
 
         local commit_to_tag=$(get_head_commit "${base_branch}")
-        git tag "${tag_early_version}" "${commit_to_tag}"
-        log_info "New tag ${tag_early_version} created refs to ${commit_to_tag}"
+        git tag "${early_tag}" "${commit_to_tag}"
+        log_info "New tag ${early_tag} created refs to ${commit_to_tag}"
 
         set_version "${base_branch}" "${current_version}"
         log_info "Branch ${base_branch} updated to project version ${current_version}"
     uncheckout
 
     git push -q origin "${base_branch}"
-    git push -q origin "${tag_early_version}"
+    git push -q origin "${early_tag}"
 
-    log_success "${tag_early_version} early version released"
+    log_success "${early_tag} early version released"
+
+    deploy "${early_tag}"
 }
 
 function create_release {
     local base_branch="${1}"
     local hotfix_branch="releases_$(determine_hotfix_version_pattern "origin/${base_branch}")"
-    local tag_release_version=$(determine_release_version "origin/${base_branch}")
+    local release_tag=$(determine_release_version "origin/${base_branch}")
 
-    log_task "Creating release ${tag_release_version} on branch '${base_branch}'"
+    log_task "Creating release ${release_tag} from branch '${base_branch}'"
 
-    test_jongo "${base_branch}"
 
     checkout -b "${hotfix_branch}" "${base_branch}"
-        set_version "${hotfix_branch}" "${tag_release_version}"
+        _mvn verify
+
+        set_version "${hotfix_branch}" "${release_tag}"
         log_info "New branch ${hotfix_branch} created"
 
         local commit_to_tag=$(get_head_commit "${hotfix_branch}")
-        git tag "${tag_release_version}" "${commit_to_tag}"
-        log_info "New tag ${tag_release_version} created on ${commit_to_tag}"
+        git tag "${release_tag}" "${commit_to_tag}"
+        log_info "New tag ${release_tag} created on ${commit_to_tag}"
 
         bump_to_next_hotfix_snapshot_version "${hotfix_branch}"
         bump_to_next_minor_snapshot_version "${base_branch}"
@@ -51,36 +55,37 @@ function create_release {
 
 
     git push -q -u origin "${hotfix_branch}"
-    git push -q origin "${tag_release_version}"
+    git push -q origin "${release_tag}"
     git push -q origin "${base_branch}"
 
-    log_success "${tag_release_version} version released"
+    log_success "${release_tag} version released"
 }
 
 function create_hotfix_release {
     local base_branch="${1}"
-    local tag_release_version=$(determine_release_version "origin/${base_branch}")
+    local hotfix_tag=$(determine_release_version "origin/${base_branch}")
 
-    log_task "Creating hotfix release ${tag_release_version} on branch '${base_branch}'"
+    log_task "Creating hotfix release ${hotfix_tag} from branch '${base_branch}'"
 
-    test_jongo "${base_branch}"
 
     checkout "${base_branch}"
-        set_version "${base_branch}" "${tag_release_version}"
+        _mvn verify
 
-        log_info "New branch ${base_branch} updated to project version ${tag_release_version}"
+        set_version "${base_branch}" "${hotfix_tag}"
+
+        log_info "New branch ${base_branch} updated to project version ${hotfix_tag}"
 
         local commit_to_tag=$(get_head_commit "${base_branch}")
-        git tag "${tag_release_version}" "${commit_to_tag}"
-        log_info "New tag ${tag_release_version} created refs to ${commit_to_tag}"
+        git tag "${hotfix_tag}" "${commit_to_tag}"
+        log_info "New tag ${hotfix_tag} created refs to ${commit_to_tag}"
 
         bump_to_next_hotfix_snapshot_version "${base_branch}"
     uncheckout
 
     git push -q origin "${base_branch}"
-    git push -q origin "${tag_release_version}"
+    git push -q origin "${hotfix_tag}"
 
-    log_success "${tag_release_version} hotfix version released"
+    log_success "${hotfix_tag} hotfix version released"
 }
 
 function deploy {
@@ -92,14 +97,19 @@ function deploy {
         _mvn deploy
     uncheckout
 
-    log_success "${tag} deployed into Maven repository version released"
+    log_success "${tag} deployed into Maven repository"
 }
 
-function test_jongo {
+function create_snapshot {
     local base_branch="${1}"
 
+    if [[ ! $(get_current_version ${base_branch}) = *"-SNAPSHOT"* ]]; then
+        echo "ci task must be ran against a SNAPSHOT version"
+        exit 1
+    fi
+
     checkout "${base_branch}"
-        log_info "Running Jongo tests..."
         _mvn verify
+        deploy "${base_branch}"
     uncheckout
 }

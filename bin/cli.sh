@@ -10,13 +10,12 @@ source "${JONGO_BASE_DIR}/bin/lib/common/logger.sh"
 source "${JONGO_BASE_DIR}/bin/lib/release/tasks.sh"
 
 function usage {
-    echo "Usage: $0 [option...] {release|release_hotfix|test}"
+    echo "Usage: $0 [option...] {create_snapshot|release|release_hotfix|test}"
     echo
     echo "Command line interface to build, package and deploy Jongo"
     echo "Note that by default all tasks are ran in dry mode. Set '--dry-run false' to run it for real. "
     echo
-    echo "   --branch           The base branch to release"
-    echo "   --tag              The tag used to deploy artifacts"
+    echo "   --git-revision     The git revision used to run the task"
     echo "   --dry-run          Run task in dry mode. Nothing will be pushed nor deployed (default: true)"
     echo "   --gpg-file         Path to the GPG file used to sign artifacts"
     echo "   --maven-options    Maven options (eg. --settings /path/to/settings.xml)"
@@ -27,13 +26,14 @@ function usage {
     echo ""
     echo " Release a new version from the master branch:"
     echo ""
-    echo "      bash ./bin/cli.sh release --gpg-file /path/to/file.gpg --branch master"
+    echo "      bash ./bin/cli.sh release --gpg-file /path/to/file.gpg --git-revision master"
     echo ""
     echo " Deploy a version from inside a docker container."
     echo ""
     echo "      docker build bin -t jongo-releaser && \\"
     echo "      docker run -it --volume /path/to/files:/opt/jongo/conf jongo-releaser \\"
     echo "         deploy \\"
+    echo "        --git-revision master \\"
     echo "        --maven-options \"--settings /opt/jongo/conf/settings.xml\" \\"
     echo "        --gpg-file /opt/jongo/conf/file.gpg \\"
     echo "        --tag 42.0.0"
@@ -48,7 +48,7 @@ function configure_dry_mode() {
 
 function safeguard() {
     while true; do
-        read -p "[WARN] Do you really want to run this task for real?" yn
+        read -p "[WARN] Do you really want to run this task for real (y/n)?" yn
         case $yn in
             [Yy]* ) break;;
             [Nn]* ) exit;;
@@ -60,18 +60,14 @@ function safeguard() {
 function __main() {
 
     local dry_run=true
+    local git_revision="$(git rev-parse --abbrev-ref HEAD)"
     local positional=()
 
     while [[ $# -gt 0 ]]
     do
     key="$1"
     case $key in
-        --branch)
-            local git_revision="$2"
-            shift
-            shift
-        ;;
-        --tag)
+        --git-revision)
             local git_revision="$2"
             shift
             shift
@@ -120,21 +116,18 @@ function __main() {
     pushd "${repo_dir}" > /dev/null
 
         local task="${1}"
-        if [[ "${dry_run}" = true ]] ; then
-            configure_dry_mode "${repo_dir}"
-        else
-            if [[ ${git_revision} = *"-early-"* ]]  || [[ "${task}" == "release_early" ]]; then
-                configure_deploy_plugin_for_early
-            fi
-            safeguard
-        fi
+        [[ "${dry_run}" = true ]] &&  configure_dry_mode "${repo_dir}" || safeguard
 
         case "${task}" in
             test)
                 source "${JONGO_BASE_DIR}/bin/test/test-tasks.sh"
                 run_test_suite "${git_revision}"
             ;;
+            create_snapshot)
+                create_snapshot "${git_revision}"
+            ;;
             release_early)
+                [[ "${dry_run}" = false ]] &&  configure_deploy_plugin_for_early
                 create_early_release "${git_revision}"
             ;;
             release)
@@ -144,6 +137,7 @@ function __main() {
                 create_hotfix_release "${git_revision}"
             ;;
             deploy)
+                [[ "${dry_run}" = false && "${git_revision}" = *"-early-"* ]] &&  configure_deploy_plugin_for_early
                 deploy "${git_revision}"
             ;;
             *)
