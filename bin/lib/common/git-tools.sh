@@ -23,8 +23,7 @@ function create_bare_repository {
 }
 
 function clone_repository {
-    local dry_run="${1}"
-    local remote_url="https://github.com/bguerout/jongo.git"
+    local remote_url="${1}"
     local repo_dir=$(mktemp -d -t "jongo-release-repo-XXXXX")
 
     git clone "${remote_url}" "${repo_dir}"

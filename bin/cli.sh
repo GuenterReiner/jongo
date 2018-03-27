@@ -60,6 +60,8 @@ function safeguard() {
 function __main() {
 
     local dry_run=true
+    local early=false
+    local remote_repository_url="https://github.com/bguerout/jongo.git"
     local git_revision="$(git rev-parse --abbrev-ref HEAD)"
     local positional=()
 
@@ -82,6 +84,10 @@ function __main() {
         --maven-options)
             append_maven_options "${2}"
             shift
+            shift
+        ;;
+        --remote-repository-url)
+            remote_repository_url="${2}"
             shift
         ;;
         --dirty)
@@ -112,7 +118,7 @@ function __main() {
     done
     set -- "${positional[@]}"
 
-    local repo_dir=$(clone_repository "${dry_run}")
+    local repo_dir=$(clone_repository "${remote_repository_url}")
     pushd "${repo_dir}" > /dev/null
 
         local task="${1}"
@@ -127,7 +133,7 @@ function __main() {
                 create_snapshot "${git_revision}"
             ;;
             release_early)
-                [[ "${dry_run}" = false ]] &&  configure_deploy_plugin_for_early
+                [[ "${dry_run}" = false ]] && configure_deploy_plugin_for_early
                 create_early_release "${git_revision}"
             ;;
             release)
