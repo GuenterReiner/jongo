@@ -4,7 +4,7 @@ source "${JONGO_TEST_DIR}/assert.sh"
 
 function run_test_suite {
     readonly JONGO_TEST_TARGET_BRANCH="${1}"
-    local -r gpg_keyname=$(import_gpg "${JONGO_TEST_DIR}/resources/jongo-dummy-key.gpg")
+    local -r gpg_keyname=$(import_gpg "${JONGO_TEST_DIR}/resources/jongo-dummy-gpg-key.asc")
     append_maven_options "-Dgpg.keyname=${gpg_keyname}"
     append_maven_options "-DskipTests"
     append_maven_options "--quiet"
