@@ -10,6 +10,7 @@ function run_test_suite {
     append_maven_options "-DskipTests"
     append_maven_options "--quiet"
 
+     log_task "Running release test suite..."
     before_all
         should_validate_tools
         can_create_snapshot

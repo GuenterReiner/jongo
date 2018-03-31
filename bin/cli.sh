@@ -62,7 +62,6 @@ function __main() {
     local dry_run=true
     local early=false
     local remote_repository_url="https://github.com/bguerout/jongo.git"
-    local git_revision="$(git rev-parse --abbrev-ref HEAD)"
     local positional=()
 
     while [[ $# -gt 0 ]]
@@ -122,6 +121,7 @@ function __main() {
     pushd "${repo_dir}" > /dev/null
 
         local task="${1}"
+        local git_revision="${git_revision:-$(git rev-parse --abbrev-ref HEAD)}"
         [[ "${dry_run}" = true ]] &&  configure_dry_mode "${repo_dir}" || safeguard
 
         case "${task}" in
