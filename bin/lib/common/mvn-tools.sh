@@ -1,5 +1,5 @@
 
-JONGO_MAVEN_OPTIONS="--errors --batch-mode -P release -Dsurefire.printSummary=false"
+JONGO_MAVEN_OPTIONS="--errors --batch-mode -Psign-artefacts -Dsurefire.printSummary=false"
 
 function _mvn() {
     mvn ${JONGO_MAVEN_OPTIONS:-""} $@
@@ -24,6 +24,10 @@ function configure_deploy_plugin_for_test() {
 
 function configure_maven_gpg_plugin() {
     local gpg_keyname="${1}"
+
+    if [[ ! $(gpg --version | head -n 1) = *"gpg (GnuPG) 1"* && ! $(gpg --version | head -n 1) = *"gpg (GnuPG) 2.0"* ]]; then
+        append_maven_options "-Pgpg-2.1"
+    fi
     append_maven_options "-Dgpg.keyname=${gpg_keyname}"
 }
 
