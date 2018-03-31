@@ -11,6 +11,11 @@ function git_commit() {
     git -c user.name="Jongo Script" -c user.email="contact@jongo.org" commit -q -a -m "${1}"
 }
 
+function get_head_commit {
+    local base_commit="${1}"
+    echo $(git rev-parse "${base_commit}")
+}
+
 function create_bare_repository {
     local source_repo=${1}
     local bare_repo_dir=$(mktemp -d -t "jongo-release-bare-repo-XXXXX")

@@ -7,10 +7,10 @@ source "${JONGO_BASE_DIR}/bin/lib/common/mvn-tools.sh"
 source "${JONGO_BASE_DIR}/bin/lib/common/git-tools.sh"
 source "${JONGO_BASE_DIR}/bin/lib/common/gpg-tools.sh"
 source "${JONGO_BASE_DIR}/bin/lib/common/logger.sh"
-source "${JONGO_BASE_DIR}/bin/lib/release/tasks.sh"
+source "${JONGO_BASE_DIR}/bin/lib/release.sh"
 
 function usage {
-    echo "Usage: $0 [option...] {create_snapshot|release|release_hotfix|test}"
+    echo "Usage: $0 [option...] {create_snapshot|deploy|release|release_early|release_hotfix|test}"
     echo
     echo "Command line interface to build, package and deploy Jongo"
     echo "Note that by default all tasks are ran in dry mode. Set '--dry-run false' to run it for real. "
@@ -126,7 +126,7 @@ function __main() {
 
         case "${task}" in
             test)
-                source "${JONGO_BASE_DIR}/bin/test/test-tasks.sh"
+                source "${JONGO_BASE_DIR}/src/test/sh/release/release-tests.sh"
                 run_test_suite "${git_revision}"
             ;;
             create_snapshot)

@@ -1,5 +1,57 @@
 
-source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/release-tools.sh"
+#---------------------------------------
+# UTILS
+#---------------------------------------
+
+function determine_release_version {
+    local base_commit="${1}"
+    local current_version=$(get_current_version "${base_commit}")
+
+    echo $(echo "${current_version}" | sed -e 's/-SNAPSHOT//g')
+}
+
+function determine_early_release_version {
+    local base_commit="${1}"
+    local release_version=$(determine_release_version "${base_commit}")
+    local early=$(date +%Y%m%d-%H%M)
+
+    echo "${release_version}-early-${early}"
+}
+
+function determine_hotfix_version_pattern {
+    local base_commit="${1}"
+    echo $(determine_release_version "${base_commit}") | awk -F  "." '{print $1"."$2;}' | xargs -I % echo "%.x"
+}
+
+function bump_to_next_hotfix_snapshot_version {
+    local base_branch="${1}"
+
+    checkout "${base_branch}"
+        _mvn --quiet build-helper:parse-version versions:set \
+            -DnewVersion='${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.nextIncrementalVersion}-SNAPSHOT' \
+            -DgenerateBackupPoms=false
+        git add pom.xml
+        git_commit "[release] Prepare for next hotfix version"
+    uncheckout
+    log_info "Branch ${base_branch} bumped to $(get_current_version "${base_branch}" )"
+}
+
+function bump_to_next_minor_snapshot_version {
+    local base_branch="${1}"
+
+    checkout "${base_branch}"
+        _mvn --quiet build-helper:parse-version versions:set \
+            -DnewVersion='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0-SNAPSHOT' \
+            -DgenerateBackupPoms=false
+        git add pom.xml
+        git_commit "[release] Prepare for next development version"
+    uncheckout
+    log_info "Branch ${base_branch} bumped to $(get_current_version "${base_branch}" )"
+}
+
+#---------------------------------------
+# TASKS
+#---------------------------------------
 
 function create_early_release {
     local base_branch="${1}"

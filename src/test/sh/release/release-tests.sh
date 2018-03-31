@@ -1,5 +1,6 @@
 
-readonly JONGO_TEST_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+readonly JONGO_TEST_DIR="${JONGO_BASE_DIR}/src/test/sh/release"
+readonly JONGO_TARGET_DIR="${JONGO_BASE_DIR}/target"
 source "${JONGO_TEST_DIR}/assert.sh"
 
 function run_test_suite {
@@ -73,7 +74,7 @@ function should_validate_tools {
 function can_create_snapshot {
     before_each
         local current_version=$(get_current_version "${JONGO_TEST_TARGET_BRANCH}")
-        local deploy_dir="${JONGO_TEST_DIR}/../../target/deploy/org/jongo/jongo/${current_version}"
+        local deploy_dir="${JONGO_TARGET_DIR}/deploy/org/jongo/jongo/${current_version}"
 
         create_snapshot "${JONGO_TEST_TARGET_BRANCH}"
 
@@ -84,7 +85,7 @@ function can_create_snapshot {
 function can_create_an_early_release {
     before_each
         local expected_early_tag="42.0.0-early-$(date +%Y%m%d-%H%M)"
-        local deploy_dir="${JONGO_TEST_DIR}/../../target/deploy/org/jongo/jongo/${expected_early_tag}"
+        local deploy_dir="${JONGO_TARGET_DIR}/deploy/org/jongo/jongo/${expected_early_tag}"
 
         create_early_release "${JONGO_TEST_TARGET_BRANCH}"
 
@@ -128,7 +129,7 @@ function can_create_an_hotfix_release {
 function can_deploy_artifacts {
     before_each
         local tag="42.0.0"
-        local deploy_dir="${JONGO_TEST_DIR}/../../target/deploy/org/jongo/jongo/${tag}"
+        local deploy_dir="${JONGO_TARGET_DIR}/deploy/org/jongo/jongo/${tag}"
 
         deploy ${tag}
 
