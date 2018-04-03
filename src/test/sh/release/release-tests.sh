@@ -1,19 +1,20 @@
 
-readonly JONGO_TEST_DIR="${JONGO_BASE_DIR}/src/test/sh/release"
-readonly JONGO_TARGET_DIR="${JONGO_BASE_DIR}/target"
-source "${JONGO_TEST_DIR}/assert.sh"
+readonly JONGO_TEST_SOURCE_DIR="${JONGO_BASE_DIR}/src/test/sh/release"
+source "${JONGO_TEST_SOURCE_DIR}/assert.sh"
 
 function run_test_suite {
     readonly JONGO_TEST_TARGET_BRANCH="${1}"
-    local -r gpg_keyname=$(import_gpg "${JONGO_TEST_DIR}/resources/jongo-dummy-gpg-key.asc")
-    append_maven_options "-Dgpg.keyname=${gpg_keyname}"
+    readonly JONGO_TEST_TARGET_DIR="${2}/target"
+
+    gpg -q --no-tty --batch --import "${JONGO_TEST_SOURCE_DIR}/resources/jongo-dummy-gpg-key.asc" || true
+    append_maven_options "-Dgpg.keyname=test@jongo.org"
     append_maven_options "-DskipTests"
     append_maven_options "--quiet"
 
-     log_task "Running release test suite..."
+    log_task "Running release test suite..."
     before_all
         should_validate_tools
-        can_create_snapshot
+        can_deploy_snapshot
         can_create_an_early_release
         can_create_a_new_release
         can_create_an_hotfix_release
@@ -72,12 +73,12 @@ function should_validate_tools {
     after_each
 }
 
-function can_create_snapshot {
+function can_deploy_snapshot {
     before_each
         local current_version=$(get_current_version "${JONGO_TEST_TARGET_BRANCH}")
-        local deploy_dir="${JONGO_TARGET_DIR}/deploy/org/jongo/jongo/${current_version}"
+        local deploy_dir="${JONGO_TEST_TARGET_DIR}/deploy/org/jongo/jongo/${current_version}"
 
-        create_snapshot "${JONGO_TEST_TARGET_BRANCH}"
+        deploy_snapshot "${JONGO_TEST_TARGET_BRANCH}"
 
         assert_directory_exists "${deploy_dir}"
     after_each
@@ -86,7 +87,7 @@ function can_create_snapshot {
 function can_create_an_early_release {
     before_each
         local expected_early_tag="42.0.0-early-$(date +%Y%m%d-%H%M)"
-        local deploy_dir="${JONGO_TARGET_DIR}/deploy/org/jongo/jongo/${expected_early_tag}"
+        local deploy_dir="${JONGO_TEST_TARGET_DIR}/deploy/org/jongo/jongo/${expected_early_tag}"
 
         create_early_release "${JONGO_TEST_TARGET_BRANCH}"
 
@@ -130,7 +131,7 @@ function can_create_an_hotfix_release {
 function can_deploy_artifacts {
     before_each
         local tag="42.0.0"
-        local deploy_dir="${JONGO_TARGET_DIR}/deploy/org/jongo/jongo/${tag}"
+        local deploy_dir="${JONGO_TEST_TARGET_DIR}/deploy/org/jongo/jongo/${tag}"
 
         deploy ${tag}
 

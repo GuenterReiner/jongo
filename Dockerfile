@@ -10,6 +10,6 @@ RUN apt-get update \
 
 COPY . /opt/jongo/sources
 
-WORKDIR /opt/jongo/sources
+ENV GPG_OPTIONS "--no-tty --batch --pinentry-mode loopback"
 
-ENTRYPOINT ["bash", "./bin/cli.sh"]
+WORKDIR /opt/jongo/sources

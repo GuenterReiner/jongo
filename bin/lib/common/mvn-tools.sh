@@ -17,18 +17,9 @@ function configure_deploy_plugin_for_early() {
     append_maven_options "-DaltDeploymentRepository=cloudbees-release::default::dav:https://repository-jongo.forge.cloudbees.com/release"
 }
 
-function configure_deploy_plugin_for_test() {
+function configure_deploy_plugin_for_dry_mode() {
     local base_dir="${1}"
     append_maven_options "-DaltDeploymentRepository=test.repo::default::file:${base_dir}/target/deploy"
-}
-
-function configure_maven_gpg_plugin() {
-    local gpg_keyname="${1}"
-
-    if [[ ! $(gpg --version | head -n 1) = *"gpg (GnuPG) 1"* && ! $(gpg --version | head -n 1) = *"gpg (GnuPG) 2.0"* ]]; then
-        append_maven_options "-Pgpg-2.1"
-    fi
-    append_maven_options "-Dgpg.keyname=${gpg_keyname}"
 }
 
 function get_pom_content {
@@ -42,7 +33,6 @@ function get_current_version {
 
     echo $(echo "${pom_xml_content}" | grep "<artifactId>jongo</artifactId>" -A 1 | grep version | sed -e 's/<[^>]*>//g' | awk '{$1=$1;print}')
 }
-
 
 function set_version {
     local base_branch="${1}"

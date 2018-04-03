@@ -60,7 +60,6 @@ function create_early_release {
 
     log_task "Creating early release ${early_tag} from branch '${base_branch}'"
 
-
     checkout "${base_branch}"
         _mvn verify
 
@@ -91,7 +90,7 @@ function create_release {
     log_task "Creating release ${release_tag} from branch '${base_branch}'"
 
 
-    checkout -b "${hotfix_branch}" "${base_branch}"
+    checkout -b "${hotfix_branch}" "origin/${base_branch}"
         _mvn verify
 
         set_version "${hotfix_branch}" "${release_tag}"
@@ -152,16 +151,14 @@ function deploy {
     log_success "${tag} deployed into Maven repository"
 }
 
-function create_snapshot {
+function deploy_snapshot {
     local base_branch="${1}"
 
-    if [[ ! $(get_current_version ${base_branch}) = *"-SNAPSHOT"* ]]; then
-        echo "ci task must be ran against a SNAPSHOT version"
-        exit 1
-    fi
-
     checkout "${base_branch}"
-        _mvn verify
+        if [[ ! $(get_current_version ${base_branch}) = *"-SNAPSHOT"* ]]; then
+          echo "deploy_snapshot task must be ran against a SNAPSHOT version"
+          exit 1
+        fi
         deploy "${base_branch}"
     uncheckout
 }
